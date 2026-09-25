@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
@@ -283,7 +284,8 @@ private fun TabsRow(selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modif
                 Modifier
                     .align(AbsoluteAlignment.CenterLeft)
                     .absoluteOffset { IntOffset((pillCenter.value - lensWidth.toPx() / 2).roundToInt(), 0) }
-                    .size(lensWidth, lensHeight)
+                    // A little taller than the bar, so the drop pokes out of it like on iOS.
+                    .requiredSize(lensWidth, lensHeight)
                     .graphicsLayer {
                         alpha = lens
                         scaleX = 0.85f + 0.15f * lens
