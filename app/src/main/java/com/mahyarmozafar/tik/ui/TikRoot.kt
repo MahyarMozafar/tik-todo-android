@@ -23,7 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
@@ -78,8 +81,13 @@ fun TikRoot(model: AppModel, openTodaySignal: Int) {
             model.selectedTab.value = AppTab.Today
         }
     }
+    // Remembered across a language switch, so the sound doesn't play again when the screens are rebuilt.
+    var celebrated by rememberSaveable { mutableIntStateOf(celebrations) }
     LaunchedEffect(celebrations) {
-        if (celebrations > 0) feedback.celebrate()
+        if (celebrations > celebrated) {
+            celebrated = celebrations
+            feedback.celebrate()
+        }
     }
 
     // Debug builds can open a screen at launch, for screenshots.

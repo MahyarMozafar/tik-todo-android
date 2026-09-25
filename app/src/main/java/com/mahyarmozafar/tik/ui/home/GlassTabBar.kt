@@ -366,47 +366,46 @@ private fun SearchPill(
                 Icon(painterResource(R.drawable.ic_search), contentDescription = null, tint = colors.primaryText, modifier = Modifier.size(26.dp))
             }
         }
-        if (progress > 0.3f) {
-            Row(
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = ((progress - 0.3f) / 0.7f).coerceIn(0f, 1f) }
-                    .padding(start = 18.dp, end = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(painterResource(R.drawable.ic_search), contentDescription = null, tint = colors.secondaryText, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(10.dp))
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.weight(1f).focusRequester(focus).testTag("searchField"),
-                    singleLine = true,
-                    enabled = searching,
-                    textStyle = type.body.copy(color = colors.primaryText),
-                    cursorBrush = SolidColor(colors.accent),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-                    decorationBox = { field ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (query.isEmpty()) {
-                                Text(stringResource(R.string.search_prompt), style = type.body, color = colors.tertiaryText, maxLines = 1)
-                            }
-                            field()
+        // Always there (only hidden), so the field can take the keyboard as soon as Search opens.
+        Row(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = ((progress - 0.3f) / 0.7f).coerceIn(0f, 1f) }
+                .padding(start = 18.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(painterResource(R.drawable.ic_search), contentDescription = null, tint = colors.secondaryText, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f).focusRequester(focus).testTag("searchField"),
+                singleLine = true,
+                enabled = searching,
+                textStyle = type.body.copy(color = colors.primaryText),
+                cursorBrush = SolidColor(colors.accent),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                decorationBox = { field ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (query.isEmpty()) {
+                            Text(stringResource(R.string.search_prompt), style = type.body, color = colors.tertiaryText, maxLines = 1)
                         }
-                    },
-                )
-                if (query.isNotEmpty()) {
-                    val clear = stringResource(R.string.clear)
-                    Box(
-                        Modifier
-                            .size(44.dp)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onQueryChange("") }
-                            .semantics { contentDescription = clear },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(Modifier.size(22.dp).background(colors.fill, CapsuleShape), contentAlignment = Alignment.Center) {
-                            Icon(painterResource(R.drawable.ic_close), contentDescription = null, tint = colors.secondaryText, modifier = Modifier.size(14.dp))
-                        }
+                        field()
+                    }
+                },
+            )
+            if (query.isNotEmpty()) {
+                val clear = stringResource(R.string.clear)
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onQueryChange("") }
+                        .semantics { contentDescription = clear },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(22.dp).background(colors.fill, CapsuleShape), contentAlignment = Alignment.Center) {
+                        Icon(painterResource(R.drawable.ic_close), contentDescription = null, tint = colors.secondaryText, modifier = Modifier.size(14.dp))
                     }
                 }
             }
