@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Made by scripts/make-icons.py -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="18.0" android:startY="18.0"
+                android:endX="90.0" android:endY="90.0"
+                android:startColor="#FFFFFFFF" android:endColor="#FFDDE5F2" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial"
+                android:centerX="31.36" android:centerY="28.12"
+                android:gradientRadius="45.0">
+                <item android:offset="0" android:color="#8CFFFFFF" />
+                <item android:offset="1" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial"
+                android:centerX="81.28" android:centerY="82.27"
+                android:gradientRadius="46.41">
+                <item android:offset="0" android:color="#809CC3FF" />
+                <item android:offset="1" android:color="#009CC3FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
