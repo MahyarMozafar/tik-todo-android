@@ -100,6 +100,8 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+    // Glance draws the widget through WorkManager but only asks for an old version of it.
+    implementation(libs.work.runtime)
 
     implementation(libs.haze)
     implementation(libs.haze.blur)
