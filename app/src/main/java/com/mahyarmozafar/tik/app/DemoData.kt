@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.mahyarmozafar.tik.TikApplication
+import com.mahyarmozafar.tik.logic.TaskFilter
 import com.mahyarmozafar.tik.model.AccentChoice
 import com.mahyarmozafar.tik.model.AppLanguage
 import com.mahyarmozafar.tik.model.AppTheme
@@ -15,6 +16,7 @@ import com.mahyarmozafar.tik.model.Subtask
 import com.mahyarmozafar.tik.model.Task
 import com.mahyarmozafar.tik.model.TaskList
 import com.mahyarmozafar.tik.time.TikCalendar
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 
@@ -25,6 +27,9 @@ import java.time.Instant
  * - `demo`: replace all data with example tasks, and start from the default settings
  * - `lang en|fa`, `theme system|light|dark`, `accent blue|purple|…`, `calendar persian|gregorian`
  * - `tab today|lists|search`: open on a tab
+ * - `screen settings|editor|scheduled|list`: open a screen on top
+ * - `add`: open the quick add field
+ * - `celebrate`: tick everything due today, the last one a moment after launch, for the confetti
  */
 object DemoData {
     fun applyLaunchExtras(intent: Intent?, app: TikApplication) {
@@ -54,9 +59,25 @@ object DemoData {
 
             if (extras.getBoolean("demo")) {
                 val settings = model.currentSettings()
-                val (lists, tasks) = content(settings.language, settings.formatting().calendar, Instant.now())
+                val calendar = settings.formatting().calendar
+                val now = Instant.now()
+                val (lists, demoTasks) = content(settings.language, calendar, now)
+                var tasks = demoTasks
+                if (extras.getBoolean("celebrate")) {
+                    val today = TaskFilter.today(tasks, now, calendar, settings.sortOrder).filter { !it.isDone }.map { it.id }
+                    val last = today.lastOrNull()
+                    tasks = tasks.map { if (it.id in today && it.id != last) it.copy(isDone = true, completedAt = now) else it }
+                    if (last != null) {
+                        model.launch {
+                            delay(1500)
+                            toggle(last)
+                        }
+                    }
+                }
                 model.replaceAll(lists, tasks)
             }
+            model.startScreen.value = extras.getString("screen")
+            if (extras.getBoolean("add")) model.pendingQuickAdd.value = true
         }
     }
 

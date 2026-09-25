@@ -114,7 +114,8 @@ def foreground(style):
     parts = [HEADER]
 
     # A soft shadow under the plate, made of a few see-through layers (vectors can't blur).
-    for grow, drop, alpha in [(4.5, 3.2, 0.03), (3.0, 2.6, 0.04), (1.5, 2.0, 0.05)]:
+    for step in range(8):
+        grow, drop, alpha = 5.6 - step * 0.7, 3.4 - step * 0.2, 0.016
         path = rounded_rect(left - grow, top - grow + drop, right + grow, bottom + grow + drop, radius + grow)
         parts.append(f'    <path android:pathData="{path}" android:fillColor="{color("000000", alpha)}" />\n')
 

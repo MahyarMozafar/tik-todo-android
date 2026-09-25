@@ -37,6 +37,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import com.mahyarmozafar.tik.app.AppModel
 import com.mahyarmozafar.tik.app.AppTab
+import com.mahyarmozafar.tik.model.SmartList
 import com.mahyarmozafar.tik.ui.components.Confetti
 import com.mahyarmozafar.tik.ui.components.rememberFeedback
 import com.mahyarmozafar.tik.ui.editor.TaskEditorScreen
@@ -45,6 +46,7 @@ import com.mahyarmozafar.tik.ui.lists.ListEditorScreen
 import com.mahyarmozafar.tik.ui.lists.TasksScreen
 import com.mahyarmozafar.tik.ui.navigation.LocalNavigator
 import com.mahyarmozafar.tik.ui.navigation.Navigator
+import com.mahyarmozafar.tik.ui.navigation.Place
 import com.mahyarmozafar.tik.ui.navigation.Route
 import com.mahyarmozafar.tik.ui.settings.SettingsScreen
 import com.mahyarmozafar.tik.ui.tablet.TabletHome
@@ -78,6 +80,19 @@ fun TikRoot(model: AppModel, openTodaySignal: Int) {
     }
     LaunchedEffect(celebrations) {
         if (celebrations > 0) feedback.celebrate()
+    }
+
+    // Debug builds can open a screen at launch, for screenshots.
+    val startScreen by model.startScreen.collectAsStateWithLifecycle()
+    LaunchedEffect(startScreen) {
+        val screen = startScreen ?: return@LaunchedEffect
+        model.startScreen.value = null
+        when (screen) {
+            "settings" -> navigator.open(Route.Settings)
+            "scheduled" -> navigator.open(Route.Tasks(Place.Smart(SmartList.Scheduled)))
+            "list" -> loaded.lists.firstOrNull()?.let { navigator.open(Route.Tasks(Place.Custom(it.id))) }
+            "editor" -> loaded.tasks.firstOrNull { it.subtasks.isNotEmpty() }?.let { navigator.open(Route.Editor(taskId = it.id)) }
+        }
     }
 
     // The first task with a time asks for permission to send reminders, like on iOS.

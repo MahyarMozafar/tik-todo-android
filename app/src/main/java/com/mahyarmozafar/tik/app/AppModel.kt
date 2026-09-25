@@ -68,6 +68,9 @@ class AppModel(
     /** Set when the widget's + button opens the app. Today then opens its quick add field. */
     val pendingQuickAdd = MutableStateFlow(false)
 
+    /** A screen to open at launch, for screenshots in debug builds (see [DemoData]). */
+    val startScreen = MutableStateFlow<String?>(null)
+
     private val _celebrations = MutableStateFlow(0)
 
     /** Goes up by one each time the last open task of today is ticked. */
