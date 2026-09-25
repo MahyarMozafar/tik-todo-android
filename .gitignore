@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Gradle and Android Studio
+.gradle/
+.kotlin/
+build/
+/local.properties
+/.idea/
+*.iml
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing keys never go in the repo
+*.jks
+*.keystore
