@@ -15,7 +15,7 @@ $ADB shell settings put global sysui_demo_allowed 1
 demo enter
 demo clock -e hhmm 0941
 demo battery -e level 100 -e plugged false
-demo network -e wifi show -e level 4 -e mobile hide
+demo network -e wifi show -e level 4 -e fully true -e mobile hide
 demo notifications -e visible false
 
 # shot NAME [extras for am start...]
@@ -61,3 +61,9 @@ echo all-done
 
 $ADB shell am force-stop $APP
 demo exit
+
+# Smaller JPG files for the README, 1100 pixels tall like the iOS ones (sips comes with macOS).
+for png in "$OUT"/*.png; do
+  sips -Z 1100 -s format jpeg -s formatOptions 85 "$png" --out "${png%.png}.jpg" > /dev/null
+  rm "$png"
+done
