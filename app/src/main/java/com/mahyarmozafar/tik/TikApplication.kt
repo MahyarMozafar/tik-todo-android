@@ -13,6 +13,7 @@ import com.mahyarmozafar.tik.data.TikDatabase
 import com.mahyarmozafar.tik.data.TikStore
 import com.mahyarmozafar.tik.reminders.Reminders
 import com.mahyarmozafar.tik.reminders.TodayCount
+import com.mahyarmozafar.tik.widget.TodayWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,7 +32,10 @@ class TikApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        scope.launch { model.start() }
+        scope.launch {
+            model.start()
+            TodayWidget.publishPreviews(this@TikApplication)
+        }
 
         // Switching the app icon can close the app on some phones, so it happens on the way out.
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

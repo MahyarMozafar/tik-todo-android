@@ -200,4 +200,9 @@
     <string name="no_tasks_today">No tasks today</string>
     <string name="n_more">+%1$s more</string>
     <string name="widget_description">See today\'s tasks and tick them off.</string>
+    <!-- Example tasks for the widget's preview in the widget list. -->
+    <string name="sample_reply">Reply to emails</string>
+    <string name="sample_call">Call mom</string>
+    <string name="sample_groceries">Buy groceries</string>
+    <string name="sample_run">Morning run</string>
 </resources>

@@ -172,4 +172,8 @@
     <string name="no_tasks_today">امروز کاری نداری</string>
     <string name="n_more">+%1$s کار دیگر</string>
     <string name="widget_description">کارهای امروز را ببین و تیکشان بزن.</string>
+    <string name="sample_reply">جواب دادن به ایمیل‌ها</string>
+    <string name="sample_call">تماس با مامان</string>
+    <string name="sample_groceries">خرید خانه</string>
+    <string name="sample_run">دویدن صبحگاهی</string>
 </resources>
