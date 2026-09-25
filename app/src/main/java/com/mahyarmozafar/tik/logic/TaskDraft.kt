@@ -6,10 +6,18 @@ import com.mahyarmozafar.tik.model.Subtask
 import com.mahyarmozafar.tik.model.Task
 import com.mahyarmozafar.tik.model.newId
 import com.mahyarmozafar.tik.time.TikCalendar
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
+@Serializable
 data class SubtaskDraft(
     val id: String = newId(),
     val title: String,
@@ -20,19 +28,22 @@ data class SubtaskDraft(
  * A copy of a task's values that the editor can change freely.
  * Nothing is saved until [applyTo] is used.
  */
+@Serializable
 data class TaskDraft(
     val title: String = "",
     val note: String = "",
     val listId: String? = null,
     val priority: Priority = Priority.None,
     val hasDate: Boolean = false,
-    val day: LocalDate,
+    @Serializable(with = LocalDateText::class) val day: LocalDate,
     val hasTime: Boolean = false,
-    val time: LocalTime,
+    @Serializable(with = LocalTimeText::class) val time: LocalTime,
     val repeatRule: RepeatRule? = null,
     val subtasks: List<SubtaskDraft> = emptyList(),
     val photo: String? = null,
 ) {
+    /** As text, so the editor can keep its changes when the phone is turned. */
+    fun toJson(): String = Json.encodeToString(serializer(), this)
     val trimmedTitle: String get() = title.trim()
 
     val canSave: Boolean get() = trimmedTitle.isNotEmpty()
@@ -76,6 +87,8 @@ data class TaskDraft(
     }
 
     companion object {
+        fun fromJson(text: String): TaskDraft = Json.decodeFromString(serializer(), text)
+
         fun forTask(task: Task, calendar: TikCalendar, now: Instant): TaskDraft {
             val due = task.dueDate
             return TaskDraft(
@@ -111,4 +124,16 @@ data class TaskDraft(
         fun nextFullHour(now: Instant, calendar: TikCalendar): LocalTime =
             calendar.localTime(now).plusHours(1).withMinute(0).withSecond(0).withNano(0)
     }
+}
+
+private object LocalDateText : KSerializer<LocalDate> {
+    override val descriptor = PrimitiveSerialDescriptor("LocalDate", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: LocalDate) = encoder.encodeString(value.toString())
+    override fun deserialize(decoder: Decoder): LocalDate = LocalDate.parse(decoder.decodeString())
+}
+
+private object LocalTimeText : KSerializer<LocalTime> {
+    override val descriptor = PrimitiveSerialDescriptor("LocalTime", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: LocalTime) = encoder.encodeString(value.toString())
+    override fun deserialize(decoder: Decoder): LocalTime = LocalTime.parse(decoder.decodeString())
 }

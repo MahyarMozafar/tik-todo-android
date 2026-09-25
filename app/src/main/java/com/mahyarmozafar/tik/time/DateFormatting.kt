@@ -66,6 +66,9 @@ class DateFormatting(
         else "${shortMonthName(it.month)} ${it.day}, ${it.year}"
     }
 
+    /** The words for the morning and the afternoon, for 12-hour time. */
+    val amPm: Pair<String, String> get() = words.am to words.pm
+
     /** "Mehr 1405", for the title of a month in the date picker. */
     fun monthAndYear(month: CalendarMonth): String = "${monthName(month.month)} ${month.year}"
 

@@ -84,6 +84,18 @@ class TaskDraftTest {
     }
 
     @Test
+    fun survivesSavingAsText() {
+        val draft = TaskDraft.forNew(gregorian, now, title = "Trip").copy(
+            hasDate = true,
+            hasTime = true,
+            time = LocalTime.of(7, 30),
+            repeatRule = RepeatRule(RepeatRule.Frequency.Weekdays, weekdays = setOf(7, 2)),
+            subtasks = listOf(SubtaskDraft(title = "Passport", isDone = true)),
+        )
+        assertThat(TaskDraft.fromJson(draft.toJson())).isEqualTo(draft)
+    }
+
+    @Test
     fun newTasksGuessTheNextFullHour() {
         assertThat(TaskDraft.nextFullHour(date(2026, 9, 24, 15, 40), gregorian)).isEqualTo(LocalTime.of(16, 0))
         assertThat(TaskDraft.nextFullHour(date(2026, 9, 24, 23, 10), gregorian)).isEqualTo(LocalTime.of(0, 0))
