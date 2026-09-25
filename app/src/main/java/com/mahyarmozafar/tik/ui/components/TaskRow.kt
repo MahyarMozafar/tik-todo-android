@@ -162,8 +162,11 @@ fun TaskRow(
     LaunchedEffect(pendingDone) {
         val target = pendingDone ?: return@LaunchedEffect
         delay(450)
-        if (task.isDone != target) onToggle()
-        pendingDone = null
+        if (task.isDone != target) onToggle() else pendingDone = null
+    }
+    // Saving takes a moment; keep showing the tick until the saved task agrees.
+    LaunchedEffect(task.isDone) {
+        if (pendingDone == task.isDone) pendingDone = null
     }
 
     val priorityColor = if (fields.priority) task.priority.color(colors.dark) else null

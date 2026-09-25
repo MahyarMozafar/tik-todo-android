@@ -1,7 +1,7 @@
 package com.mahyarmozafar.tik.ui.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,12 +46,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.mahyarmozafar.tik.ui.theme.TikTheme
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class SwipeAction(
-    @DrawableRes val icon: Int,
+    @param:DrawableRes val icon: Int,
     val label: String,
     val color: Color,
     val onClick: () -> Unit,
@@ -88,58 +89,64 @@ fun SwipeActionsBox(
     val group = LocalSwipeGroup.current
 
     /** Positive shows the leading action, negative the trailing ones. */
-    val offset = remember { Animatable(0f) }
+    var offset by remember { mutableFloatStateOf(0f) }
     var rowWidth by remember { mutableFloatStateOf(0f) }
     var pastFullSwipe by remember { mutableStateOf(false) }
+    var settling by remember { mutableStateOf<Job?>(null) }
 
     val button = with(density) { ButtonWidth.toPx() }
     val gap = with(density) { Gap.toPx() }
     val leadingOpen = if (leading != null) button + gap else 0f
     val trailingOpen = trailing.size * (button + gap)
-    val settleSpring = spring<Float>(dampingRatio = 0.85f, stiffness = 500f)
+
+    fun moveTo(target: Float, then: (() -> Unit)? = null) {
+        settling?.cancel()
+        settling = scope.launch {
+            animate(offset, target, animationSpec = spring(dampingRatio = 0.85f, stiffness = 500f)) { value, _ -> offset = value }
+            then?.invoke()
+        }
+    }
 
     LaunchedEffect(group.openKey) {
-        if (group.openKey != key && offset.value != 0f) offset.animateTo(0f, settleSpring)
+        if (group.openKey != key && offset != 0f) moveTo(0f)
     }
 
     fun fullSwipe(value: Float) = rowWidth > 0f && abs(value) > rowWidth * 0.55f
 
-    fun close() {
-        scope.launch { offset.animateTo(0f, settleSpring) }
-    }
-
     fun run(action: SwipeAction, fromFull: Boolean) {
-        scope.launch {
-            if (fromFull) offset.animateTo(if (offset.value > 0) rowWidth else -rowWidth, settleSpring)
+        if (fromFull) {
+            moveTo(if (offset > 0) rowWidth else -rowWidth) {
+                action.onClick()
+                offset = 0f
+            }
+        } else {
             action.onClick()
-            offset.snapTo(0f)
+            moveTo(0f)
         }
-        if (!fromFull) close()
     }
 
     fun settle(velocity: Float) {
-        val value = offset.value
+        val value = offset
         when {
             value > 0f && leading != null -> when {
                 fullSwipe(value) || (velocity > 2500f && value > leadingOpen) -> run(leading, fromFull = true)
-                value > leadingOpen / 2 || velocity > 900f -> scope.launch { offset.animateTo(leadingOpen, settleSpring) }
-                else -> close()
+                value > leadingOpen / 2 || velocity > 900f -> moveTo(leadingOpen)
+                else -> moveTo(0f)
             }
             value < 0f && trailing.isNotEmpty() -> when {
                 fullSwipe(value) || (velocity < -2500f && -value > trailingOpen) -> run(trailing.first(), fromFull = true)
-                -value > trailingOpen / 2 || velocity < -900f -> scope.launch { offset.animateTo(-trailingOpen, settleSpring) }
-                else -> close()
+                -value > trailingOpen / 2 || velocity < -900f -> moveTo(-trailingOpen)
+                else -> moveTo(0f)
             }
-            else -> close()
+            else -> moveTo(0f)
         }
     }
 
     val dragState = rememberDraggableState { delta ->
         val max = if (leading != null) rowWidth else 0f
         val min = if (trailing.isNotEmpty()) -rowWidth else 0f
-        val target = (offset.value + delta * direction).coerceIn(min, max)
-        scope.launch { offset.snapTo(target) }
-        val past = fullSwipe(target)
+        offset = (offset + delta * direction).coerceIn(min, max)
+        val past = fullSwipe(offset)
         if (past != pastFullSwipe) {
             pastFullSwipe = past
             feedback.selection()
@@ -147,7 +154,7 @@ fun SwipeActionsBox(
     }
 
     Box(modifier.onSizeChanged { rowWidth = it.width.toFloat() }) {
-        val value = offset.value
+        val value = offset
         if (value > 0f && leading != null) {
             Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.Start) {
                 ActionButton(leading, widthPx = value - gap) { run(leading, fromFull = false) }
@@ -158,12 +165,10 @@ fun SwipeActionsBox(
             Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.End) {
                 // The first action is the outermost one, at the end edge, and grows on a long swipe.
                 val widths = trailing.indices.map { index ->
-                    if (shown <= trailingOpen) {
-                        shown / trailing.size - gap
-                    } else if (index == 0) {
-                        shown - (trailing.size - 1) * (button + gap) - gap
-                    } else {
-                        button
+                    when {
+                        shown <= trailingOpen -> shown / trailing.size - gap
+                        index == 0 -> shown - (trailing.size - 1) * (button + gap) - gap
+                        else -> button
                     }
                 }
                 for (index in trailing.indices.reversed()) {
@@ -180,6 +185,7 @@ fun SwipeActionsBox(
                     state = dragState,
                     orientation = Orientation.Horizontal,
                     onDragStarted = {
+                        settling?.cancel()
                         group.openKey = key
                         pastFullSwipe = false
                     },
@@ -192,7 +198,7 @@ fun SwipeActionsBox(
                 Box(
                     Modifier
                         .matchParentSize()
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { close() },
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { moveTo(0f) },
                 )
             }
         }

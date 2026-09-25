@@ -82,8 +82,8 @@ fun TasksScreen(place: Place, modifier: Modifier = Modifier, showBackButton: Boo
     val navigator = navigator
     val list = (place as? Place.Custom)?.let { data.list(it.listId) }
     if (place is Place.Custom && list == null) {
-        // The list was deleted.
-        LaunchedEffect(Unit) { navigator.back() }
+        // The list was deleted. (On tablets this screen isn't opened on top, so there is nothing to close.)
+        LaunchedEffect(Unit) { navigator.close(Route.Tasks(place)) }
         return
     }
     val accent = list?.color?.system?.color(TikTheme.colors.dark) ?: TikTheme.colors.accent
@@ -266,7 +266,7 @@ private fun TasksContent(place: Place, data: AppData, modifier: Modifier, showBa
             onConfirm = {
                 confirmDelete = false
                 // Leave the screen first, so it never shows a list that is gone.
-                navigator.back()
+                navigator.close(Route.Tasks(place))
                 model.launch { deleteList(list) }
             },
         )
