@@ -273,24 +273,39 @@ private fun openApp(context: Context, what: String) = actionStartActivity(
 
 private enum class HeaderStyle { Full, Inline, Compact }
 
-/** What fits at the widget's size: the kind of header, and how many task rows. */
-private class WidgetLayout(size: DpSize, hasProgress: Boolean) {
+/** What fits at the widget's size: the kind of header, and how many tasks. */
+private class WidgetLayout(size: DpSize, hasProgress: Boolean, farsi: Boolean) {
     val small = size.width < 200.dp
     val large = !small && size.height >= 250.dp
     val header = if (small) HeaderStyle.Compact else if (large) HeaderStyle.Full else HeaderStyle.Inline
     val gap = if (large) 10.dp else 8.dp
+    private val rowHeight = if (small) 24.dp else 28.dp
 
-    // The header heights leave a little extra room, because Farsi letters are taller.
-    val rows: Int = run {
-        val headerHeight = if (header == HeaderStyle.Inline) 30.dp else 48.dp
+    // The space under the header. The phone's Farsi font has taller lines, so a two-line header
+    // needs more room in Farsi.
+    private val room: Dp = run {
+        val headerHeight = when {
+            header == HeaderStyle.Inline -> 30.dp
+            header == HeaderStyle.Full -> if (farsi) 54.dp else 44.dp
+            else -> if (farsi) 50.dp else 40.dp
+        }
         val progressHeight = if (!hasProgress || header == HeaderStyle.Inline) 0.dp else if (large) 16.dp else 12.dp
-        val rowHeight = if (small) 24.dp else 28.dp
-        val room = size.height - Padding * 2 - headerHeight - gap - progressHeight
-        ((room + gap) / (rowHeight + gap)).toInt().coerceIn(0, 8)
+        size.height - Padding * 2 - headerHeight - gap - progressHeight
+    }
+
+    private fun rowsIn(space: Dp): Int = ((space + gap) / (rowHeight + gap)).toInt().coerceIn(0, 8)
+
+    val hasRoom: Boolean = rowsIn(room) > 0
+
+    /** How many of [total] tasks to show. When some don't fit, the large widget keeps room for "n more". */
+    fun taskCount(total: Int): Int {
+        val all = rowsIn(room)
+        return if (total <= all || !large) minOf(total, all) else rowsIn(room - gap - MoreLine)
     }
 
     companion object {
         val Padding = 14.dp
+        private val MoreLine = 16.dp
     }
 }
 
@@ -300,7 +315,7 @@ private fun WidgetContent(state: WidgetState) {
     val launcherRtl = launcherIsRtl(context)
     val look = remember(state.settings, launcherRtl) { WidgetLook(state.settings, context, launcherRtl) }
     val texts = remember(state.settings.language) { context.localized(state.settings.language) }
-    val layout = WidgetLayout(LocalSize.current, hasProgress = state.totalCount > 0)
+    val layout = WidgetLayout(LocalSize.current, hasProgress = state.totalCount > 0, farsi = look.rtl)
     val small = layout.small
     val large = layout.large
 
@@ -322,18 +337,17 @@ private fun WidgetContent(state: WidgetState) {
             }
             val shown = if (small) state.tasks.filter { !it.isDone } else state.tasks
             if (shown.isEmpty()) {
-                if (layout.rows > 0) EmptyState(state, look, texts)
-            } else if (layout.rows > 0) {
-                // When not everything fits, the last row says how many more there are.
-                val more = large && shown.size > layout.rows
-                val count = if (more) layout.rows - 1 else layout.rows
+                if (layout.hasRoom) EmptyState(state, look, texts)
+            } else if (layout.hasRoom) {
+                val count = layout.taskCount(shown.size)
                 // A widget column holds at most 10 things, so the tasks get a column of their own
                 // and the gaps are padding instead of spacers.
                 Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = look.startColumn) {
                     shown.take(count).forEachIndexed { index, task ->
                         TaskLine(task, look, compact = small, modifier = GlanceModifier.padding(top = if (index == 0) 0.dp else layout.gap))
                     }
-                    if (more) {
+                    // When not everything fits, the large widget says how many more there are.
+                    if (large && shown.size > count) {
                         Text(
                             texts.getString(R.string.n_more, (shown.size - count).toString()).ownDirection(),
                             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = look.secondary, textAlign = look.startAlign),
