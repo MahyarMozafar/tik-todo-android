@@ -31,6 +31,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -65,10 +69,23 @@ fun PhoneHome() {
     var bottomHeight by remember { mutableIntStateOf(0) }
     val keyboardOpen = WindowInsets.isImeVisible
 
+    // Like iOS, the tab bar shrinks while the list scrolls down and comes back when it scrolls up.
+    var minimized by remember { mutableStateOf(false) }
+    val scrollWatcher = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (consumed.y < -6f) minimized = true else if (consumed.y > 6f) minimized = false
+                return Offset.Zero
+            }
+        }
+    }
+
     LaunchedEffect(tab) {
         if (tab != AppTab.Search) lastTab = tab
         if (tab != AppTab.Today) adding = false
+        minimized = false
     }
+    LaunchedEffect(adding) { if (adding) minimized = false }
 
     // The widget's + button opens Today with the quick add field ready.
     val pendingQuickAdd by model.pendingQuickAdd.collectAsStateWithLifecycle()
@@ -90,6 +107,7 @@ fun PhoneHome() {
             AnimatedContent(
                 targetState = tab,
                 transitionSpec = { fadeIn(Motion.effects()) togetherWith fadeOut(Motion.effects()) },
+                modifier = Modifier.nestedScroll(scrollWatcher),
                 label = "tabs",
             ) { current ->
                 when (current) {
@@ -133,6 +151,8 @@ fun PhoneHome() {
                         query = query,
                         onQueryChange = { query = it },
                         backdrop = backdrop,
+                        minimized = minimized && !adding,
+                        onExpand = { minimized = false },
                         modifier = Modifier.navigationBarsPadding().padding(bottom = 8.dp),
                     )
                 }

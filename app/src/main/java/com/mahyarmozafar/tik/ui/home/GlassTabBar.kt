@@ -101,7 +101,8 @@ private val Gap = 12.dp
 /**
  * The floating glass tab bar: Today and Lists in one capsule, and a round Search button next to
  * it. Tapping Search melts the capsule into a small circle and stretches the button into a search
- * field, like the tab bar in iOS 26.
+ * field, like the tab bar in iOS 26. When [minimized] (the list is scrolling down), the capsule
+ * shrinks to a circle with the current tab's icon; tapping it opens the tabs again.
  */
 @Composable
 fun GlassTabBar(
@@ -112,39 +113,49 @@ fun GlassTabBar(
     onQueryChange: (String) -> Unit,
     backdrop: HazeState,
     modifier: Modifier = Modifier,
+    minimized: Boolean = false,
+    onExpand: () -> Unit = {},
 ) {
     val searching = selected == AppTab.Search
     val progress by animateFloatAsState(if (searching) 1f else 0f, Motion.liquid(), label = "searchMorph")
+    val collapse by animateFloatAsState(if (searching || minimized) 1f else 0f, Motion.liquid(), label = "tabsMorph")
+    val shownTab = if (searching) lastTab else selected
 
     BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 16.dp).height(BarHeight)) {
         val big = maxWidth - BarHeight - Gap
-        val tabsWidth = lerp(big, BarHeight, progress).coerceIn(BarHeight, big)
+        val tabsWidth = lerp(big, BarHeight, collapse).coerceIn(BarHeight, big)
         val searchWidth = lerp(BarHeight, big, progress).coerceIn(BarHeight, big)
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(tabsWidth).fillMaxHeight().glass(backdrop, CapsuleShape)) {
-                if (progress < 0.99f) {
+                if (collapse < 0.99f) {
                     TabsRow(
-                        selectedIndex = tabs.indexOfFirst { it.tab == (if (searching) lastTab else selected) }.coerceAtLeast(0),
+                        selectedIndex = tabs.indexOfFirst { it.tab == shownTab }.coerceAtLeast(0),
                         onSelect = { onSelect(tabs[it].tab) },
-                        modifier = Modifier.graphicsLayer { alpha = (1f - progress * 1.8f).coerceIn(0f, 1f) },
+                        modifier = Modifier.graphicsLayer { alpha = (1f - collapse * 1.8f).coerceIn(0f, 1f) },
                     )
                 }
-                if (progress > 0.01f) {
-                    val item = tabs.first { it.tab == lastTab }
+                if (collapse > 0.01f) {
+                    val item = tabs.first { it.tab == shownTab }
                     val label = stringResource(item.label)
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .graphicsLayer { alpha = ((progress - 0.4f) / 0.6f).coerceIn(0f, 1f) }
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(lastTab) }
+                            .graphicsLayer { alpha = ((collapse - 0.4f) / 0.6f).coerceIn(0f, 1f) }
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                if (searching) onSelect(lastTab) else onExpand()
+                            }
                             .semantics { contentDescription = label },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(painterResource(item.icon), contentDescription = null, tint = TikTheme.colors.primaryText, modifier = Modifier.size(26.dp))
+                        Icon(
+                            painterResource(if (searching) item.icon else item.selectedIcon),
+                            contentDescription = null,
+                            tint = if (searching) TikTheme.colors.primaryText else TikTheme.colors.accent,
+                            modifier = Modifier.size(26.dp),
+                        )
                     }
                 }
             }
-            Spacer(Modifier.width(Gap))
             SearchPill(
                 progress = progress,
                 searching = searching,
