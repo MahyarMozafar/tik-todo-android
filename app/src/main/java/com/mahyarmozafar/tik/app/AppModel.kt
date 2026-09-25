@@ -221,9 +221,9 @@ class AppModel(
         return result
     }
 
-    /** The widget and the count on the icon follow every change. */
+    /** The widget and the count on the icon follow every change. Nobody waits for the widget. */
     private suspend fun afterChange() {
-        TodayWidget.updateAll(context)
+        scope.launch { TodayWidget.updateAll(context) }
         val settings = settingsRepository.current()
         val calendar = settings.formatting().calendar
         val openToday = TaskFilter.today(store.allTasks(), Instant.now(), calendar, settings.sortOrder).count { !it.isDone }
