@@ -1,9 +1,11 @@
 package com.mahyarmozafar.tik.widget
 
+import android.app.LocaleManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Build
+import android.text.TextUtils
 import android.view.View
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -12,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,6 +73,7 @@ import com.mahyarmozafar.tik.model.TikSettings
 import com.mahyarmozafar.tik.ui.theme.SystemColor
 import com.mahyarmozafar.tik.ui.theme.system
 import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 
 /** A task turned into plain values, ready to draw in the widget. */
@@ -94,8 +98,8 @@ data class WidgetState(
 }
 
 /** Today's tasks the way the Today screen shows them. */
-fun widgetState(tasks: List<Task>, settings: TikSettings, now: Instant): WidgetState {
-    val formatting = settings.formatting()
+fun widgetState(tasks: List<Task>, settings: TikSettings, now: Instant, zone: ZoneId = ZoneId.systemDefault()): WidgetState {
+    val formatting = settings.formatting(zone)
     val calendar = formatting.calendar
     val today = TaskFilter.today(tasks, now, calendar, settings.sortOrder)
     val shown = if (settings.showCompletedInToday) today else today.filter { !it.isDone }
@@ -119,8 +123,13 @@ fun widgetState(tasks: List<Task>, settings: TikSettings, now: Instant): WidgetS
 
 /** The Home Screen widget with today's tasks. Tasks can be ticked right on it. */
 class TodayWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(Small, Medium, Large))
-    override val previewSizeMode = SizeMode.Responsive(setOf(Small, Medium, Large))
+    // Drawn for its real size, so it shows as many tasks as fit.
+    override val sizeMode = SizeMode.Exact
+
+    // A preview can't know its size, so it comes in a few sizes and the launcher picks one.
+    override val previewSizeMode = SizeMode.Responsive(
+        setOf(DpSize(110.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 180.dp), DpSize(250.dp, 300.dp)),
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val app = context.applicationContext as TikApplication
@@ -151,10 +160,6 @@ class TodayWidget : GlanceAppWidget() {
     }
 
     companion object {
-        private val Small = DpSize(110.dp, 110.dp)
-        private val Medium = DpSize(250.dp, 110.dp)
-        private val Large = DpSize(250.dp, 250.dp)
-
         suspend fun updateAll(context: Context) {
             runCatching { TodayWidget().updateAll(context) }
         }
@@ -184,12 +189,32 @@ class ToggleTaskAction : ActionCallback {
 }
 
 /**
+ * Whether the launcher lays widgets out right to left. The launcher follows the phone's language.
+ * On Android 13 and newer, Tik's own language also changes the settings this app sees as the
+ * phone's, so there the phone's languages are asked for directly.
+ */
+private fun launcherIsRtl(context: Context): Boolean {
+    val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.getSystemService(LocaleManager::class.java)?.systemLocales?.get(0)
+    } else {
+        Resources.getSystem().configuration.locales[0]
+    }
+    return locale != null && TextUtils.getLayoutDirectionFromLocale(locale) == View.LAYOUT_DIRECTION_RTL
+}
+
+/**
+ * The launcher's text boxes run the way the phone's language does. These marks let a text run
+ * the way its first letter does instead, like in the app, so "+2" stays in front in Farsi.
+ */
+private fun String.ownDirection() = "\u2068$this\u2069"
+
+/**
  * Colors, and which way things run. The launcher lays the widget out in the phone's language,
  * so when Tik's language runs the other way, the rows are flipped by hand.
  */
-private class WidgetLook(settings: TikSettings, context: Context) {
+private class WidgetLook(settings: TikSettings, context: Context, launcherRtl: Boolean) {
     val rtl = settings.language == AppLanguage.Farsi
-    val flip = rtl != (Resources.getSystem().configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL)
+    val flip = rtl != launcherRtl
     val startAlign = if (rtl) TextAlign.Right else TextAlign.Left
     val startColumn = if (flip) Alignment.End else Alignment.Start
     val english = settings.language == AppLanguage.English
@@ -202,7 +227,8 @@ private class WidgetLook(settings: TikSettings, context: Context) {
     val primary = ColorProvider(Color.Black, Color.White)
     val secondary = ColorProvider(Color(0xFF8A8A8E), Color(0xFF98989F))
     val late = ColorProvider(SystemColor.Red.color(false), SystemColor.Red.color(true))
-    val track = ColorProvider(Color.Black.copy(alpha = 0.08f), Color.White.copy(alpha = 0.14f))
+    // Solid, so a flipped progress bar can swap it with the accent.
+    val track = ColorProvider(Color(0xFFE5E5EA), Color(0xFF3A3A3C))
     val white = ColorProvider(Color.White, Color.White)
 
     fun priority(priority: Priority): ColorProvider? = when (priority) {
@@ -213,12 +239,31 @@ private class WidgetLook(settings: TikSettings, context: Context) {
     }
 }
 
-/** A row whose children are flipped when the widget has to run the other way. */
+/**
+ * A row whose children are flipped when the widget has to run the other way. A flipped row also
+ * sits at the far side, where reading starts.
+ */
 @Composable
 private fun FlipRow(look: WidgetLook, modifier: GlanceModifier = GlanceModifier, children: List<@Composable RowScope.() -> Unit>) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier, horizontalAlignment = look.startColumn, verticalAlignment = Alignment.CenterVertically) {
         (if (look.flip) children.reversed() else children).forEach { it() }
     }
+}
+
+/**
+ * How much of today is done. The launcher always fills a bar from its own side, so when the
+ * widget runs the other way, the colors swap and the empty part is filled instead. Colors only
+ * work on Android 12 and newer, so older phones keep the plain bar.
+ */
+@Composable
+private fun ProgressBar(progress: Float, look: WidgetLook, height: Dp) {
+    val swap = look.flip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    LinearProgressIndicator(
+        progress = if (swap) 1f - progress else progress,
+        modifier = GlanceModifier.fillMaxWidth().height(height),
+        color = if (swap) look.track else look.accent,
+        backgroundColor = if (swap) look.accent else look.track,
+    )
 }
 
 private fun openApp(context: Context, what: String) = actionStartActivity(
@@ -226,14 +271,38 @@ private fun openApp(context: Context, what: String) = actionStartActivity(
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
 )
 
+private enum class HeaderStyle { Full, Inline, Compact }
+
+/** What fits at the widget's size: the kind of header, and how many task rows. */
+private class WidgetLayout(size: DpSize, hasProgress: Boolean) {
+    val small = size.width < 200.dp
+    val large = !small && size.height >= 250.dp
+    val header = if (small) HeaderStyle.Compact else if (large) HeaderStyle.Full else HeaderStyle.Inline
+    val gap = if (large) 10.dp else 8.dp
+
+    // The header heights leave a little extra room, because Farsi letters are taller.
+    val rows: Int = run {
+        val headerHeight = if (header == HeaderStyle.Inline) 30.dp else 48.dp
+        val progressHeight = if (!hasProgress || header == HeaderStyle.Inline) 0.dp else if (large) 16.dp else 12.dp
+        val rowHeight = if (small) 24.dp else 28.dp
+        val room = size.height - Padding * 2 - headerHeight - gap - progressHeight
+        ((room + gap) / (rowHeight + gap)).toInt().coerceIn(0, 8)
+    }
+
+    companion object {
+        val Padding = 14.dp
+    }
+}
+
 @Composable
 private fun WidgetContent(state: WidgetState) {
     val context = LocalContext.current
-    val size = LocalSize.current
-    val look = remember(state.settings) { WidgetLook(state.settings, context) }
+    val launcherRtl = launcherIsRtl(context)
+    val look = remember(state.settings, launcherRtl) { WidgetLook(state.settings, context, launcherRtl) }
     val texts = remember(state.settings.language) { context.localized(state.settings.language) }
-    val small = size.width < 200.dp
-    val large = size.height >= 200.dp
+    val layout = WidgetLayout(LocalSize.current, hasProgress = state.totalCount > 0)
+    val small = layout.small
+    val large = layout.large
 
     Box(
         GlanceModifier
@@ -244,50 +313,42 @@ private fun WidgetContent(state: WidgetState) {
             .clickable(openApp(context, "today")),
     ) {
         Box(GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_glow), colorFilter = ColorFilter.tint(look.accent))) {}
-        Column(GlanceModifier.fillMaxSize().padding(14.dp), horizontalAlignment = look.startColumn) {
-            Header(state, look, texts, style = if (small) HeaderStyle.Compact else if (large) HeaderStyle.Full else HeaderStyle.Inline)
-            Spacer(GlanceModifier.height(if (large) 10.dp else 8.dp))
+        Column(GlanceModifier.fillMaxSize().padding(WidgetLayout.Padding), horizontalAlignment = look.startColumn) {
+            Header(state, look, texts, style = layout.header)
+            Spacer(GlanceModifier.height(layout.gap))
             if (large && state.totalCount > 0) {
-                LinearProgressIndicator(
-                    progress = state.progress,
-                    modifier = GlanceModifier.fillMaxWidth().height(6.dp),
-                    color = look.accent,
-                    backgroundColor = look.track,
-                )
+                ProgressBar(state.progress, look, height = 6.dp)
                 Spacer(GlanceModifier.height(10.dp))
             }
             val shown = if (small) state.tasks.filter { !it.isDone } else state.tasks
             if (shown.isEmpty()) {
-                EmptyState(state, look, texts)
-            } else {
-                val limit = if (large) 8 else 3
-                shown.take(limit).forEachIndexed { index, task ->
-                    if (index > 0) Spacer(GlanceModifier.height(if (large) 10.dp else 8.dp))
-                    TaskLine(task, look, compact = small)
+                if (layout.rows > 0) EmptyState(state, look, texts)
+            } else if (layout.rows > 0) {
+                // When not everything fits, the last row says how many more there are.
+                val more = large && shown.size > layout.rows
+                val count = if (more) layout.rows - 1 else layout.rows
+                // A widget column holds at most 10 things, so the tasks get a column of their own
+                // and the gaps are padding instead of spacers.
+                Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = look.startColumn) {
+                    shown.take(count).forEachIndexed { index, task ->
+                        TaskLine(task, look, compact = small, modifier = GlanceModifier.padding(top = if (index == 0) 0.dp else layout.gap))
+                    }
+                    if (more) {
+                        Text(
+                            texts.getString(R.string.n_more, (shown.size - count).toString()).ownDirection(),
+                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = look.secondary, textAlign = look.startAlign),
+                            modifier = GlanceModifier.fillMaxWidth().padding(top = layout.gap),
+                        )
+                    }
                 }
-                if (large && shown.size > limit) {
-                    Spacer(GlanceModifier.height(8.dp))
-                    Text(
-                        texts.getString(R.string.n_more, (shown.size - limit).toString()),
-                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = look.secondary, textAlign = look.startAlign),
-                        modifier = GlanceModifier.fillMaxWidth(),
-                    )
-                }
-                if (small && state.totalCount > 0) {
-                    Spacer(GlanceModifier.defaultWeight())
-                    LinearProgressIndicator(
-                        progress = state.progress,
-                        modifier = GlanceModifier.fillMaxWidth().height(5.dp),
-                        color = look.accent,
-                        backgroundColor = look.track,
-                    )
-                }
+            }
+            if (small && state.totalCount > 0 && shown.isNotEmpty()) {
+                Spacer(GlanceModifier.defaultWeight())
+                ProgressBar(state.progress, look, height = 5.dp)
             }
         }
     }
 }
-
-private enum class HeaderStyle { Full, Inline, Compact }
 
 /** The date, "Today", how many are done, and a + button. */
 @Composable
@@ -295,8 +356,8 @@ private fun Header(state: WidgetState, look: WidgetLook, texts: Context, style: 
     val context = LocalContext.current
     val formatting = state.settings.formatting()
     val dateText = if (style == HeaderStyle.Full) formatting.fullDay(state.now) else formatting.shortDay(state.now)
-    val date = if (look.english) dateText.uppercase(Locale.ENGLISH) else dateText
-    val today = texts.getString(R.string.today)
+    val date = (if (look.english) dateText.uppercase(Locale.ENGLISH) else dateText).ownDirection()
+    val today = texts.getString(R.string.today).ownDirection()
     val dateStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = look.accent, textAlign = look.startAlign)
     val titleSize = if (style == HeaderStyle.Full) 20.sp else 17.sp
 
@@ -347,7 +408,7 @@ private fun Header(state: WidgetState, look: WidgetLook, texts: Context, style: 
 
 /** One task with a check circle that works right inside the widget. */
 @Composable
-private fun TaskLine(task: WidgetTask, look: WidgetLook, compact: Boolean) {
+private fun TaskLine(task: WidgetTask, look: WidgetLook, compact: Boolean, modifier: GlanceModifier = GlanceModifier) {
     val priorityColor = look.priority(task.priority)
     val children = mutableListOf<@Composable RowScope.() -> Unit>()
     children += {
@@ -368,7 +429,7 @@ private fun TaskLine(task: WidgetTask, look: WidgetLook, compact: Boolean) {
     children += { Spacer(GlanceModifier.width(6.dp)) }
     children += {
         Text(
-            task.title,
+            task.title.ownDirection(),
             style = TextStyle(
                 fontSize = if (compact) 12.sp else 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -381,19 +442,21 @@ private fun TaskLine(task: WidgetTask, look: WidgetLook, compact: Boolean) {
         )
     }
     if (!task.isDone && task.time != null) {
+        children += { Spacer(GlanceModifier.width(6.dp)) }
         children += {
             Text(
-                task.time,
+                task.time.ownDirection(),
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (task.isLate) look.late else look.secondary),
                 maxLines = 1,
             )
         }
     } else if (!task.isDone && priorityColor != null) {
+        children += { Spacer(GlanceModifier.width(6.dp)) }
         children += {
             Text(task.priority.marks, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = priorityColor))
         }
     }
-    FlipRow(look, GlanceModifier.fillMaxWidth(), children)
+    FlipRow(look, modifier.fillMaxWidth(), children)
 }
 
 @Composable
@@ -407,7 +470,7 @@ private fun EmptyState(state: WidgetState, look: WidgetLook, texts: Context) {
         )
         Spacer(GlanceModifier.height(6.dp))
         Text(
-            texts.getString(if (state.totalCount > 0) R.string.all_done else R.string.no_tasks_today),
+            texts.getString(if (state.totalCount > 0) R.string.all_done else R.string.no_tasks_today).ownDirection(),
             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = look.primary, textAlign = TextAlign.Center),
         )
     }

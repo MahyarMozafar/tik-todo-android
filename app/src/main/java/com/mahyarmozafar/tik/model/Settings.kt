@@ -1,6 +1,7 @@
 package com.mahyarmozafar.tik.model
 
 import com.mahyarmozafar.tik.time.DateFormatting
+import java.time.ZoneId
 
 enum class AppLanguage(val tag: String) {
     English("en"),
@@ -158,5 +159,5 @@ data class TikSettings(
     val badge: Boolean = false,
     val appIcon: AppIconChoice = AppIconChoice.Blue,
 ) {
-    fun formatting(): DateFormatting = DateFormatting(language, calendar, use24Hour)
+    fun formatting(zone: ZoneId = ZoneId.systemDefault()): DateFormatting = DateFormatting(language, calendar, use24Hour, zone)
 }

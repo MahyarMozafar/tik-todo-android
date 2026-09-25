@@ -134,7 +134,8 @@ fun QuickAddBar(
                 Modifier
                     .padding(end = 12.dp)
                     .height(54.dp)
-                    .glass(backdrop, CapsuleShape, tint = colors.glassFallback.copy(alpha = if (colors.dark) 0.55f else 0.6f))
+                    // More frosted than the bars, so typed text stays easy to read over the list.
+                    .glass(backdrop, CapsuleShape, tint = colors.glassFallback.copy(alpha = if (colors.dark) 0.8f else 0.85f))
                     .padding(start = 20.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -120,7 +120,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.room.testing)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.kotlinx.coroutines.test)

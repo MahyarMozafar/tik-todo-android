@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Starts at the medium size (4 x 2); it can be made as small as 2 x 2 or as large as 4 x 4.
+  The preview image is a picture of the real widget, in the phone's language and light or dark look.
+  Launchers that can draw a live preview use that instead.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:minWidth="110dp"
+    android:previewImage="@drawable/widget_preview"
+    android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="110dp"
     android:minResizeHeight="110dp"
     android:maxResizeWidth="560dp"
     android:maxResizeHeight="560dp"
     android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="2"
+    android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen|keyguard" />

@@ -185,6 +185,12 @@ class AppModel(
         ) {
             reminders.resyncAll(store.allTasks(), new)
         }
+        // The widget list shows a preview with the app's words and colors.
+        if (old.language != new.language || old.calendar != new.calendar || old.use24Hour != new.use24Hour ||
+            old.accent != new.accent || old.wallpaperColors != new.wallpaperColors
+        ) {
+            scope.launch { TodayWidget.publishPreviews(context) }
+        }
     }
 
     /** Schedules every reminder again, for example after the phone restarts. */
@@ -205,6 +211,7 @@ class AppModel(
     // Demo data (debug builds only)
 
     suspend fun replaceAll(lists: List<TaskList>, tasks: List<Task>) = change {
+        reminders.cancel(store.allTasks().map { it.id })
         store.replaceAll(lists, tasks)
         reminders.resyncAll(tasks, settingsRepository.current())
     }

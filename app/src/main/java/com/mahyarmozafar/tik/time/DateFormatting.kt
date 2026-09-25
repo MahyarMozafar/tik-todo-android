@@ -78,7 +78,7 @@ class DateFormatting(
         val minute = time.minute.toString().padStart(2, '0')
         if (use24Hour) return "${time.hour.toString().padStart(2, '0')}:$minute"
         val hour = if (time.hour % 12 == 0) 12 else time.hour % 12
-        return "$hour:$minute ${if (time.hour < 12) words.am else words.pm}"
+        return "$hour:$minute\u00A0${if (time.hour < 12) words.am else words.pm}"
     }
 
     /** "Today", "Tomorrow", "Yesterday", a weekday for the next few days, or a short date. */

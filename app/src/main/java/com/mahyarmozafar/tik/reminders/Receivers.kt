@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.mahyarmozafar.tik.TikApplication
+import com.mahyarmozafar.tik.widget.TodayWidget
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -43,8 +44,8 @@ class ReminderReceiver : BroadcastReceiver() {
 
 /**
  * Alarms are forgotten when the phone restarts or the app is updated, and a new day or a new
- * time zone changes what "today" is. Each of these brings reminders, the widget and the count
- * up to date.
+ * time zone changes what "today" is. A new phone language can change which way the widget runs.
+ * Each of these brings reminders, the widget and the count up to date.
  */
 class RefreshReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -53,6 +54,7 @@ class RefreshReceiver : BroadcastReceiver() {
         app.scope.launch {
             try {
                 app.model.refreshAll()
+                if (intent.action == Intent.ACTION_LOCALE_CHANGED) TodayWidget.publishPreviews(app)
             } finally {
                 pending.finish()
             }

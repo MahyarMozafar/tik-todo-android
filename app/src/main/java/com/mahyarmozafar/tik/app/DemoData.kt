@@ -164,7 +164,7 @@ object DemoData {
                 read = "خواندن 20 صفحه کتاب", plants = "آب دادن به گلدان‌ها", bill = "پرداخت قبض اینترنت",
                 meeting = "جلسه‌ی تیم", meetingNote = "طرح‌های جدید را بیاور.",
                 gym = "باشگاه", dentist = "وقت دندان‌پزشکی", trip = "برنامه‌ریزی سفر آخر هفته",
-                learn = "یادگیری ⁦Jetpack Compose⁩", desk = "مرتب کردن میز", portfolio = "تمام کردن سایت نمونه‌کار",
+                learn = "یادگیری \u2066Jetpack Compose\u2069", desk = "مرتب کردن میز", portfolio = "تمام کردن سایت نمونه‌کار",
             )
         }
     }
