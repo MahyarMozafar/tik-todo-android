@@ -360,7 +360,7 @@ fun GlassMenu(
         modifier = modifier.padding(vertical = 2.dp),
         offset = offset,
         shape = RoundedCornerShape(20.dp),
-        containerColor = colors.glassFallback,
+        containerColor = colors.popup,
         tonalElevation = 0.dp,
         shadowElevation = 12.dp,
     ) {

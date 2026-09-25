@@ -46,11 +46,18 @@ fun Modifier.glass(
     clear: Boolean = false,
 ): Modifier {
     val colors = TikTheme.colors
+    val dark = colors.dark
     val fill = tint ?: if (canBlur) colors.glassTint else colors.glassFallback
-    val style = remember(shape, fill, clear) {
+    val style = remember(shape, fill, clear, dark) {
         (if (clear) GlassStyle.clear else GlassStyle.regular) then GlassStyle {
             shape(shape)
             tint(fill)
+            // The default glass lifts what is behind it toward white, which suits light mode.
+            // Dark glass keeps it dark, like iOS.
+            if (dark) {
+                whitePoint(-0.2f)
+                ambientResponse(0.08f)
+            }
         }
     }
     val input = remember(backdrop) { HazeInput.Sources(backdrop) }

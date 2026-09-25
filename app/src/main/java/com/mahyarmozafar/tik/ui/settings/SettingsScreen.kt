@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -369,7 +370,7 @@ private fun <T> PickerRow(
                 color = TikTheme.colors.secondaryText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.widthIn(max = 170.dp),
             )
             Icon(painterResource(R.drawable.ic_expand), contentDescription = null, tint = TikTheme.colors.tertiaryText, modifier = Modifier.size(20.dp))
         }

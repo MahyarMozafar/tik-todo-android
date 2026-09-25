@@ -236,7 +236,7 @@ fun DeleteListDialog(list: TaskList, onDismiss: () -> Unit, onConfirm: () -> Uni
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
         shape = RoundedCornerShape(28.dp),
-        containerColor = colors.glassFallback,
+        containerColor = colors.popup,
     )
 }
 

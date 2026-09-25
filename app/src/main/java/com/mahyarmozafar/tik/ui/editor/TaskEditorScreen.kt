@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -278,7 +279,7 @@ fun TaskEditorScreen(route: Route.Editor) {
                                 color = colors.secondaryText,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
+                                modifier = Modifier.widthIn(max = 190.dp),
                             )
                             Icon(painterResource(R.drawable.ic_chevron_end), contentDescription = null, tint = colors.tertiaryText, modifier = Modifier.size(20.dp))
                         }
@@ -305,7 +306,7 @@ fun TaskEditorScreen(route: Route.Editor) {
                         color = colors.secondaryText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.widthIn(max = 170.dp),
                     )
                     Icon(painterResource(R.drawable.ic_expand), contentDescription = null, tint = colors.tertiaryText, modifier = Modifier.size(20.dp))
                 }
@@ -459,7 +460,7 @@ fun TaskEditorScreen(route: Route.Editor) {
             dismissButton = {
                 TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.keep_editing)) }
             },
-            containerColor = colors.glassFallback,
+            containerColor = colors.popup,
         )
     }
     if (confirmDelete && existing != null) {
@@ -476,7 +477,7 @@ fun TaskEditorScreen(route: Route.Editor) {
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) }
             },
-            containerColor = colors.glassFallback,
+            containerColor = colors.popup,
         )
     }
 }
