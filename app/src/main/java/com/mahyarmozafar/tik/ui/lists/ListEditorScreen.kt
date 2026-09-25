@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -170,13 +171,17 @@ fun ListEditorScreen(listId: String?) {
     }
 }
 
-/** Items in rows of six. */
+/** Items in rows of six. On wide screens the cells keep their size and the gaps grow, like on iPad. */
 @Composable
 fun <T> ChoiceGrid(items: List<T>, modifier: Modifier = Modifier, columns: Int = 6, cell: @Composable (T) -> Unit) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items.chunked(columns).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { item -> Box(Modifier.weight(1f)) { cell(item) } }
+                row.forEach { item ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Box(Modifier.widthIn(max = 52.dp)) { cell(item) }
+                    }
+                }
                 repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
